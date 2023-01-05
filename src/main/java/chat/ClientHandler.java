@@ -20,6 +20,9 @@ public class ClientHandler {
     private DataOutputStream outputStream;
     private String name;
 
+    private Integer count = 0;
+    private boolean autorised = false;
+
     public String getName() {
         return name;
     }
@@ -31,6 +34,7 @@ public class ClientHandler {
             this.inputStream = new DataInputStream(socket.getInputStream());
             this.outputStream = new DataOutputStream(socket.getOutputStream());
             this.name = "";
+
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -42,7 +46,23 @@ public class ClientHandler {
                     } finally {
                         closeConnection();
                     }
+                }
+            }).start();
 
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (count < SECONDS_TO_AUTH) {
+                        System.out.println(count+=5);
+                        System.out.println("autorised = "+ autorised);
+                        if(autorised) break;
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    if (!autorised) closeConnection();
 
                 }
             }).start();
@@ -81,7 +101,7 @@ public class ClientHandler {
             } else if (message.startsWith(SEND_TO_LIST)) {
                 String[] splitedStr = message.split("\\s+");
                 List<String> nicknames = new ArrayList<>();
-                for (int i = 1; i < splitedStr.length -1; i++) {
+                for (int i = 1; i < splitedStr.length - 1; i++) {
                     nicknames.add(splitedStr[i]);
                 }
 
@@ -106,6 +126,7 @@ public class ClientHandler {
                             name = nick;
                             server.subscribe(this);
                             server.broarcastMessage("[" + name + "] " + " come to chat");
+                            autorised = true;
                             return;
                         } else {
                             sendMsg("Nick is busy");
