@@ -5,6 +5,7 @@ public class ChatConstants {
     public static final int PORT  = 8589;
 
     public static final String AUTH_COMMAND = "/auth";
+    public static final String CHANGE_NICK = "/newNick";
     public static final String AUTH_OK= "/authOk";
     public static final String STOP_WORD = "/stop";
 
@@ -13,5 +14,7 @@ public class ChatConstants {
 
     public static final String SEND_TO_LIST = "/list";
     public static final Integer SECONDS_TO_AUTH = 120;
+
+    static final String DATABASE_URL = "jdbc:sqlite:javadb.db";
 
 }
