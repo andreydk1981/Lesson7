@@ -3,6 +3,7 @@ package chat;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,9 +15,9 @@ public class MyServer {
     private List<ClientHandler> clients;
     private AuthService authService;
 
-    public MyServer() {
+    public MyServer() throws SQLException {
         try (ServerSocket server = new ServerSocket(ChatConstants.PORT)) {
-            authService = new BaseAuthService();
+            authService = new SqlAuthService();
             authService.start();
             clients = new ArrayList<>();
             while (true) {
@@ -26,7 +27,7 @@ public class MyServer {
                 new ClientHandler(this, socket);
             }
 
-        } catch (IOException e) {
+        } catch (IOException | SQLException e) {
             throw new RuntimeException(e);
         } finally {
             if (authService != null) authService.stop();

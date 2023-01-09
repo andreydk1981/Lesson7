@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,7 +42,7 @@ public class ClientHandler {
                     try {
                         authentication();
                         readMessages();
-                    } catch (IOException e) {
+                    } catch (IOException | SQLException e) {
                         e.printStackTrace();
                     } finally {
                         closeConnection();
@@ -53,9 +54,9 @@ public class ClientHandler {
                 @Override
                 public void run() {
                     while (count < SECONDS_TO_AUTH) {
-                        System.out.println(count+=5);
-                        System.out.println("autorised = "+ autorised);
-                        if(autorised) break;
+                        System.out.println(count += 5);
+                        System.out.println("autorised = " + autorised);
+                        if (autorised) break;
                         try {
                             Thread.sleep(5000);
                         } catch (InterruptedException e) {
@@ -71,7 +72,7 @@ public class ClientHandler {
         }
     }
 
-    private void readMessages() throws IOException {
+    private void readMessages() throws IOException, SQLException {
         while (true) {
             String message = inputStream.readUTF();
             System.out.println("from " + name + ": " + message);
@@ -80,9 +81,10 @@ public class ClientHandler {
             }
             if (message.startsWith(CLIENTS_LIST)) {
                 server.clientListMessage(this.name);
-                sendMsg("online: " + server.getClients().stream()
+                /*sendMsg("online: " + server.getClients().stream()
                         .map(ClientHandler::getName)
-                        .collect(Collectors.joining(" ")));
+                        .collect(Collectors.joining(" ")));*/
+                sendMsg("-------");
 
             } else if (message.startsWith(SEND_TO_NICK)) {
                 boolean sendOK = false;
@@ -105,6 +107,10 @@ public class ClientHandler {
                     nicknames.add(splitedStr[i]);
                 }
 
+            } else if (message.startsWith(CHANGE_NICK)) {
+                String[] pats = message.split("\\s+");
+                name = server.getAuthService().change_nickname(pats[1], pats[2]);
+                server.broarcastMessage("[" + pats[1] + "] " + " new nick " + "["+name+ "]");
             } else {
                 server.broarcastMessage("[" + name + "] " + " speak " + message);
             }
@@ -113,7 +119,7 @@ public class ClientHandler {
         }
     }
 
-    private void authentication() throws IOException {
+    private void authentication() throws IOException, SQLException {
         while (true) {
             String message = inputStream.readUTF();
             if (message.startsWith(AUTH_COMMAND)) {
@@ -146,6 +152,9 @@ public class ClientHandler {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+    public void setName(String name){
+        this.name = name;
     }
 
     public void closeConnection() {

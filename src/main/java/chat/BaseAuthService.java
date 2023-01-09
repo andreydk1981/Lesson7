@@ -1,5 +1,6 @@
 package chat;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,5 +54,10 @@ public class BaseAuthService implements AuthService {
 //            if (entry.login.equals(login) && entry.pass.equals(pass)) return entry.nick;
 //        }
 //        return null;
+    }
+
+    @Override
+    public String change_nickname(String oldNick, String newNick) throws SQLException {
+        return null;
     }
 }
