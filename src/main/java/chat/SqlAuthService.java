@@ -61,16 +61,16 @@ public class SqlAuthService implements AuthService {
     }
 
     private void createTable() throws SQLException {
-        statement.execute("delete from entries");
         String createTable = "create table if not exists entries (" +
                 "id integer not null primary key," +
-                "nick TEXT not null, " +
-                "login TEXT," +
-                "pass text)";
+                "nick VARCHAR(20) not null, " +
+                "login VARCHAR(20)," +
+                "pass VARCHAR(20))";
         statement.execute(createTable);
     }
 
     private void initEntries() throws SQLException {
+        statement.execute("delete from entries");
         PreparedStatement preparedStatement =
                 connection.prepareStatement("insert into entries(nick, login, pass)values(?,?,?)");
         for (int i = 1; i <= 3; i++) {
@@ -84,14 +84,26 @@ public class SqlAuthService implements AuthService {
 
     public String change_nickname(String oldNick, String newNick) throws SQLException {
         listDatabase();
-        String strUpdate = "UPDATE entries SET nick = ?  WHERE nick = ?";
-        PreparedStatement preparedStatement = connection.prepareStatement(strUpdate);
-        preparedStatement.setString(1, newNick);
-        preparedStatement.setString(2, oldNick);
-        preparedStatement.execute();
-        listDatabase();
+        if (searchNick(oldNick)) {
+            String strUpdate = "UPDATE entries SET nick = ?  WHERE nick = ?";
+            PreparedStatement preparedStatement = connection.prepareStatement(strUpdate);
+            preparedStatement.setString(1, newNick);
+            preparedStatement.setString(2, oldNick);
+            preparedStatement.addBatch();
+            preparedStatement.executeBatch();
+            listDatabase();
+            return newNick;
+        } else return null;
+    }
 
-        return newNick;
+    private boolean searchNick(String oldNick) throws SQLException {
+        ResultSet resultSet = statement.executeQuery("SELECT nick FROM entries;");
+        while (resultSet.next()) {
+            if (oldNick.equals(resultSet.getString("nick"))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void listDatabase() throws SQLException {

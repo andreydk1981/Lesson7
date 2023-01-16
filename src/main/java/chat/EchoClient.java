@@ -7,8 +7,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -30,6 +28,7 @@ public class EchoClient extends JFrame {
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
     private String login;
+    private HistoryFile historyFile;
 
 
     public EchoClient() {
@@ -50,20 +49,34 @@ public class EchoClient extends JFrame {
                 while (true) {
                     String messageFromServer = dataInputStream.readUTF();
                     if (messageFromServer.equals(STOP_WORD)) {
+                        textArea.append("Соединение разорвано");
+                        textField.setEnabled(false);
+                        closeConnection();
                         break;
                     } else if (messageFromServer.startsWith(AUTH_OK)) {
                         String[] tokens = messageFromServer.split("\\s+");
                         this.login = tokens[1];
                         textArea.append("Успешно авторизован как " + login);
                         textArea.append("\n");
+                        historyFile = new HistoryFile(login);
+                        historyFile.makeFile();
+
+                        for (String mess : historyFile.readMessages()) {
+                            textArea.append(mess);
+                            textArea.append("\n");
+                        }
+                    } else if (messageFromServer.equals(CLEAR)) {
+                        historyFile.clearHistory();
+                        textArea.append("History deleted");
+                        textArea.append("\n");
                     } else {
                         textArea.append(messageFromServer);
                         textArea.append("\n");
+                        historyFile.write(messageFromServer);
+
                     }
                 }
-                textArea.append("Соединение разорвано");
-                textField.setEnabled(false);
-                closeConnection();
+
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -72,6 +85,7 @@ public class EchoClient extends JFrame {
 
 
     private void closeConnection() {
+        System.out.println(login + " closeConnection");
         try {
             dataOutputStream.close();
         } catch (Exception ex) {
@@ -87,6 +101,7 @@ public class EchoClient extends JFrame {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+        historyFile.close();
     }
 
     private void sendMessage() {
