@@ -8,6 +8,7 @@ public class ChatConstants {
     public static final String CHANGE_NICK = "/newNick";
     public static final String AUTH_OK= "/authOk";
     public static final String STOP_WORD = "/stop";
+    public static final String CLEAR = "/clear";
 
     public static final String CLIENTS_LIST = "/clients";
     public static final String SEND_TO_NICK = "/w";

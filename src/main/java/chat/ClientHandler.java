@@ -7,7 +7,6 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static chat.ChatConstants.*;
 
@@ -36,36 +35,30 @@ public class ClientHandler {
             this.outputStream = new DataOutputStream(socket.getOutputStream());
             this.name = "";
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        authentication();
-                        readMessages();
-                    } catch (IOException | SQLException e) {
-                        e.printStackTrace();
-                    } finally {
-                        closeConnection();
-                    }
+            new Thread(() -> {
+                try {
+                    authentication();
+                    readMessages();
+                } catch (IOException | SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    closeConnection();
                 }
             }).start();
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    while (count < SECONDS_TO_AUTH) {
-                        System.out.println(count += 5);
-                        System.out.println("autorised = " + autorised);
-                        if (autorised) break;
-                        try {
-                            Thread.sleep(5000);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+            new Thread(() -> {
+                while (count < SECONDS_TO_AUTH) {
+                    System.out.println(count += 5);
+                    System.out.println("autorised = " + autorised);
+                    if (autorised) break;
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
-                    if (!autorised) closeConnection();
-
                 }
+                if (!autorised) closeConnection();
+
             }).start();
         } catch (IOException ex) {
             System.out.println("Problem with make client");
@@ -77,9 +70,11 @@ public class ClientHandler {
             String message = inputStream.readUTF();
             System.out.println("from " + name + ": " + message);
             if (message.equals(STOP_WORD)) {
-                return;
-            }
-            if (message.startsWith(CLIENTS_LIST)) {
+                sendMsg(STOP_WORD);
+                break;
+            } else if (message.equals(CLEAR)) {
+                sendMsg(CLEAR);
+            } else if (message.startsWith(CLIENTS_LIST)) {
                 server.clientListMessage(this.name);
                 /*sendMsg("online: " + server.getClients().stream()
                         .map(ClientHandler::getName)
@@ -109,8 +104,16 @@ public class ClientHandler {
 
             } else if (message.startsWith(CHANGE_NICK)) {
                 String[] pats = message.split("\\s+");
-                name = server.getAuthService().change_nickname(pats[1], pats[2]);
-                server.broarcastMessage("[" + pats[1] + "] " + " new nick " + "["+name+ "]");
+                if (pats.length > 1) {
+                    if (server.getAuthService().change_nickname(pats[1], pats[2]) != null) {
+                        name = pats[2];
+                        server.broarcastMessage("[" + pats[1] + "] " + " new nick " + "[" + name + "]");
+                    } else {
+                        sendMsg("old Nick not found!");
+                    }
+                } else {
+                    sendMsg("enter old nick and new nick");
+                }
             } else {
                 server.broarcastMessage("[" + name + "] " + " speak " + message);
             }
@@ -153,13 +156,15 @@ public class ClientHandler {
             throw new RuntimeException(e);
         }
     }
-    public void setName(String name){
+
+    public void setName(String name) {
         this.name = name;
     }
 
     public void closeConnection() {
         server.unsubscribe(this);
         server.broarcastMessage(name + " out of chat");
+        System.out.println(name + " out of chat");
         try {
             inputStream.close();
         } catch (IOException e) {
@@ -178,4 +183,5 @@ public class ClientHandler {
             throw new RuntimeException(e);
         }
     }
+
 }
