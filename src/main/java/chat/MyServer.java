@@ -6,6 +6,9 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -14,7 +17,6 @@ import java.util.stream.Collectors;
 public class MyServer {
     private List<ClientHandler> clients;
     private AuthService authService;
-
     public MyServer() throws SQLException {
         try (ServerSocket server = new ServerSocket(ChatConstants.PORT)) {
             authService = new SqlAuthService();

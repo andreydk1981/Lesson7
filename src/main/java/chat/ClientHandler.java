@@ -7,6 +7,8 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static chat.ChatConstants.*;
 
@@ -19,9 +21,10 @@ public class ClientHandler {
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
     private String name;
+    ExecutorService executorService;
 
     private Integer count = 0;
-    private boolean autorised = false;
+    private boolean authorised = false;
 
     public String getName() {
         return name;
@@ -34,8 +37,9 @@ public class ClientHandler {
             this.inputStream = new DataInputStream(socket.getInputStream());
             this.outputStream = new DataOutputStream(socket.getOutputStream());
             this.name = "";
+            executorService = Executors.newFixedThreadPool(2);
 
-            new Thread(() -> {
+            executorService.execute(() -> {
                 try {
                     authentication();
                     readMessages();
@@ -44,22 +48,22 @@ public class ClientHandler {
                 } finally {
                     closeConnection();
                 }
-            }).start();
+            });
 
-            new Thread(() -> {
+            executorService.execute(() -> {
                 while (count < SECONDS_TO_AUTH) {
                     System.out.println(count += 5);
-                    System.out.println("autorised = " + autorised);
-                    if (autorised) break;
+                    System.out.println("authorised = " + authorised);
+                    if (authorised) break;
                     try {
                         Thread.sleep(5000);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
                 }
-                if (!autorised) closeConnection();
+                if (!authorised) closeConnection();
 
-            }).start();
+            });
         } catch (IOException ex) {
             System.out.println("Problem with make client");
         }
@@ -135,7 +139,7 @@ public class ClientHandler {
                             name = nick;
                             server.subscribe(this);
                             server.broarcastMessage("[" + name + "] " + " come to chat");
-                            autorised = true;
+                            authorised = true;
                             return;
                         } else {
                             sendMsg("Nick is busy");
@@ -182,6 +186,7 @@ public class ClientHandler {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        executorService.shutdown();
     }
 
 }
